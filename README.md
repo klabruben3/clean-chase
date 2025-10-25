@@ -4,7 +4,7 @@ CleanChase is a smooth, minimal JavaScript animation that simulates a chain of c
 Each circle “chases” the one before it, creating a fluid, organic motion trail.
 
 You can view the live demo here:
-👉 Live Demo on GitHub Pages
+👉 [Clean Chase](https://klabruben3.github.io/clean-chase/)
 
 ## 🧠 Features
 
@@ -17,6 +17,10 @@ Fully customizable circle properties (count, color, radius, speed)
 Randomized motion paths for endless variety
 
 Works instantly in any modern browser (no frameworks needed)
+
+## 📀 Screenshot / GIF
+
+![Clean Chase GIF](./public/clean-chase_gif.gif)
 
 ## 🚧 Experimental: Easing Modes
 

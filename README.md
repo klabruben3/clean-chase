@@ -1,85 +1,412 @@
-# 🌀 CleanChase
+# CleanChase
 
-CleanChase is a smooth, minimal JavaScript animation that simulates a chain of circles following a randomly moving target across the canvas.
-Each circle “chases” the one before it, creating a fluid, organic motion trail.
+**CleanChase is a lightweight JavaScript canvas experiment that creates a fluid chain of circles chasing one another across the screen.**
 
-You can view the live demo here:
-👉 [Clean Chase](https://klabruben3.github.io/clean-chase/)
+Each circle follows the position of the circle ahead of it, while the first circle moves toward a randomly generated target.
 
-## 🧠 Features
+The result is a simple procedural motion system that produces continuously changing, organic-looking trails without relying on an animation framework.
 
-Smooth, recursive “chasing” animation using requestAnimationFrame()
+**Live demo:** [CleanChase](https://klabruben3.github.io/clean-chase/)
 
-Dynamic resizing with preserved circle ratios
+---
 
-Fully customizable circle properties (count, color, radius, speed)
+## Demo
 
-Randomized motion paths for endless variety
+![CleanChase animation](./public/clean-chase_gif.gif)
 
-Works instantly in any modern browser (no frameworks needed)
+---
 
-## 📀 Screenshot / GIF
+## The Idea
 
-![Clean Chase GIF](./public/clean-chase_gif.gif)
+CleanChase is built around a very small rule:
 
-## 🚧 Experimental: Easing Modes
+> **Every point moves toward the point in front of it.**
 
-I’m working on adding custom motion easing — allowing each chase step to follow different easing curves such as sine or cosine instead of simple linear interpolation.
+The first circle follows a target.
 
-### The idea:
+Every other circle follows the previous circle.
 
-- The speed factor (normally between 0 and 1) is treated like a trigonometric output.
+```text
+Random Target
+     ↓
+Circle 1
+     ↓
+Circle 2
+     ↓
+Circle 3
+     ↓
+Circle 4
+     ↓
+    ...
+```
 
-- By mapping the distance to a sine/cosine angle, the speed becomes dynamic — increasing and decreasing smoothly.
+Because each circle is slightly behind the previous one, the chain naturally produces a trailing motion.
 
-- The challenge is normalizing the angle per frame since both distance and target position change continuously.
+The target periodically changes position, so the movement never follows exactly the same path.
 
-- This feature would allow circles to follow smoother, wave-like motions instead of fixed-speed chases — basically giving life and rhythm to the motion.
+---
 
-## 🎬 Demo
+## Motion Model
 
-You can also try it locally:
+The core movement is interpolation between two positions.
+
+For a circle at:
+
+```js
+currentX
+currentY
+```
+
+following a target at:
+
+```js
+targetX
+targetY
+```
+
+the next position can be calculated using:
+
+```js
+x += (targetX - x) * speed;
+y += (targetY - y) * speed;
+```
+
+The `speed` value determines how much of the remaining distance is covered on each frame.
+
+For example:
+
+```js
+const speed = 0.03;
+```
+
+means the circle moves approximately 3% of the remaining distance toward its target during each update.
+
+Because the distance continually decreases, the motion naturally slows as the circle approaches the target.
+
+---
+
+## The Chase
+
+The first circle follows the randomly generated destination.
+
+After that, the same rule is applied recursively through the chain:
+
+```text
+target
+  ↓
+circle[0]
+  ↓
+circle[1]
+  ↓
+circle[2]
+  ↓
+circle[3]
+```
+
+Conceptually:
+
+```js
+circle[0] → target
+circle[1] → circle[0]
+circle[2] → circle[1]
+circle[3] → circle[2]
+```
+
+A very small movement rule therefore produces the entire animation.
+
+---
+
+## Random Movement
+
+When the leading circle gets sufficiently close to its target, CleanChase generates another destination.
+
+```text
+Generate target
+      ↓
+Move toward target
+      ↓
+Distance decreases
+      ↓
+Threshold reached
+      ↓
+Generate new target
+      ↓
+Repeat
+```
+
+Because the target coordinates are randomized, the animation continues indefinitely without relying on a predefined path or looping keyframes.
+
+---
+
+## Animation Loop
+
+CleanChase uses the browser's:
+
+```js
+requestAnimationFrame()
+```
+
+for continuous rendering.
+
+The basic loop is:
+
+```text
+Update target
+      ↓
+Update circle positions
+      ↓
+Clear canvas
+      ↓
+Draw circles
+      ↓
+requestAnimationFrame
+      ↓
+Repeat
+```
+
+This keeps the animation synchronized with the browser's rendering cycle.
+
+No external animation library is required.
+
+---
+
+## Responsive Canvas
+
+The canvas responds to changes in viewport size.
+
+Circle positions are adjusted so resizing the window does not simply discard the existing composition.
+
+This allows the animation to remain usable across different browser dimensions while preserving the general relationship between the circles.
+
+---
+
+## Configuration
+
+The main animation parameters can be changed directly in the script.
+
+For example:
+
+```js
+const circleCount = 10;
+const circleRad = 4;
+const speed = 0.03;
+const restartDistance = 10;
+
+const fillColor = "white";
+const strokeColor = "red";
+```
+
+### `circleCount`
+
+Controls how many circles form the chase chain.
+
+More circles create a longer trail.
+
+### `circleRad`
+
+Controls the radius of each circle.
+
+### `speed`
+
+Controls how aggressively each circle approaches the point ahead of it.
+
+Typical values remain between:
+
+```text
+0 → no movement
+1 → immediately reach target
+```
+
+Smaller values produce smoother, slower trailing behavior.
+
+### `restartDistance`
+
+Determines how close the leading circle must get to its target before a new random destination is created.
+
+### Colors
+
+`fillColor` and `strokeColor` control the visual appearance of the circles.
+
+---
+
+## Easing Experiments
+
+One of the more interesting directions explored by CleanChase is replacing the fixed interpolation factor with a changing easing value.
+
+The current basic motion uses something equivalent to:
+
+```text
+position += distance × constant
+```
+
+where the interpolation factor remains fixed.
+
+A more expressive model could instead use:
+
+```text
+position += distance × easing(progress)
+```
+
+with an easing function such as:
+
+```js
+Math.sin(...)
+Math.cos(...)
+```
+
+or another custom curve.
+
+Conceptually:
+
+```text
+Linear interpolation
+
+speed
+│────────────
+│
+└────────────── time
+
+
+Eased interpolation
+
+speed
+│       ╭────╮
+│     ╭─╯    ╰─╮
+│   ╭─╯        ╰─╮
+└───────────────── time
+```
+
+The harder part is determining meaningful progress when:
+
+* The target is constantly changing
+* The remaining distance changes every frame
+* Each circle follows another moving object
+* Every circle is effectively running its own chase
+
+That makes easing less straightforward than applying a standard animation curve between two fixed positions.
+
+---
+
+## Why This Experiment Exists
+
+CleanChase is deliberately small.
+
+The project is less about building a complete application and more about exploring how surprisingly complex motion can emerge from simple mathematics.
+
+The animation combines:
+
+* Interpolation
+* Coordinate systems
+* Euclidean distance
+* Randomization
+* Recursive following
+* Frame-based animation
+* Responsive canvas rendering
+
+without requiring a framework or animation library.
+
+It is essentially a small study in:
+
+> **How little logic is required to create movement that feels organic?**
+
+---
+
+## Built With
+
+* **JavaScript**
+* **HTML Canvas**
+* **HTML**
+* **CSS**
+* **requestAnimationFrame**
+
+No framework or external animation dependency is required.
+
+---
+
+## Running Locally
+
+Clone the repository:
 
 ```bash
-git clone https://github.com/<your-username>/cleanchase.git
-cd cleanchase
+git clone https://github.com/klabruben3/clean-chase.git
+cd clean-chase
 ```
 
-open index.html
+Then open:
 
-Or simply open it via GitHub Pages once published.
-
-## 🎨 Customization
-
-All parameters are editable directly in the script:
-
-```const circleCount = 10;     // Number of circles
-const circleRad = 4;        // Radius
-const speed = 0.03;         // Speed (0–1 range)
-const restartDistance = 10; // Distance before creating a new target
-const fillColor = "white";  // Fill color
-const strokeColor = "red";  // Outline color
+```text
+index.html
 ```
 
-You can experiment with different values or even randomize them at runtime.
+in a modern browser.
 
-## 💡 Future Additions
+Because the project uses plain browser APIs, there is no build step or package installation required.
 
-- Easing curves (sine, cosine, exponential, custom functions)
+---
 
-- Trail/glow rendering for smoother effects
+## Project Structure
 
-- User interactivity (mouse or touch-following mode)
-
-- Gradient and blur-based backgrounds
-
-### 🧱 Folder Structure
-
-```
-cleanchase/
+```text
+clean-chase/
+│
 ├── index.html
 ├── script.js
+├── public/
+│   └── clean-chase_gif.gif
+│
 └── README.md
 ```
 
-When hosted on GitHub Pages, it’ll automatically run from index.html.
+The implementation is intentionally small enough to inspect without navigating a framework or larger application architecture.
+
+---
+
+## Ideas for Further Experimentation
+
+CleanChase can be extended in several directions:
+
+* Sine / cosine easing
+* Exponential easing
+* Spring-like motion
+* Variable speed per circle
+* Mouse-following mode
+* Touch-following mode
+* Glow and trail effects
+* Gradient rendering
+* Blur effects
+* Different geometric shapes
+* Distance-dependent colors
+* Velocity-based styling
+* Multiple independent chains
+* Collision or repulsion behavior
+
+The project is intentionally open-ended.
+
+---
+
+## Open Source
+
+CleanChase is public and open source.
+
+Feel free to:
+
+* Fork it
+* Modify the movement rules
+* Reuse the animation
+* Experiment with different easing models
+* Turn it into a background effect
+* Use it as a starting point for other canvas experiments
+
+The implementation is small by design, so it can be taken apart and changed without needing to understand a larger framework.
+
+---
+
+## Final Note
+
+CleanChase started from a simple rule:
+
+> **Move a little closer to whatever is in front of you.**
+
+Repeated across a chain of objects and combined with randomized targets, that rule creates motion that looks considerably more complex than the code responsible for it.
+
+That's the experiment.
